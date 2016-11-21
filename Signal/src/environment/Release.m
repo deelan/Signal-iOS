@@ -55,9 +55,9 @@ static unsigned char DH3K_PRIME[] = {
     return [[Environment alloc] initWithLogging:logging
                                      errorNoter:errorNoter
                                      serverPort:31337
-                           masterServerHostName:@"master.whispersystems.org"
+                           masterServerHostName:@"server.lemr.ca"
                                defaultRelayName:@"relay"
-                      relayServerHostNameSuffix:@"whispersystems.org"
+                      relayServerHostNameSuffix:@"server.lemr.ca"
                                     certificate:[Certificate certificateFromResourcePath:@"redphone" ofType:@"cer"]
                  supportedKeyAgreementProtocols:[self supportedKeyAgreementProtocols]
                                    phoneManager:[PhoneManager phoneManagerWithErrorHandler:errorNoter]

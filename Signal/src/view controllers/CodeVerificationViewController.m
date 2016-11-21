@@ -9,7 +9,7 @@
 #import "CodeVerificationViewController.h"
 #import "AppDelegate.h"
 #import "RPAccountManager.h"
-#import "Signal-Swift.h"
+#import "Sandwedge-Swift.h"
 #import "SignalsNavigationController.h"
 #import "SignalsViewController.h"
 #import <PromiseKit/AnyPromise.h>

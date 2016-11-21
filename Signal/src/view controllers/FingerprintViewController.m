@@ -10,7 +10,7 @@
 #import "DJWActionSheet+OWS.h"
 #import "Environment.h"
 #import "OWSConversationSettingsTableViewController.h"
-#import "Signal-Swift.h"
+#import "Sandwedge-Swift.h"
 #import "UIUtil.h"
 #import "UIViewController+CameraPermissions.h"
 #import <SignalServiceKit/NSDate+millisecondTimeStamp.h>

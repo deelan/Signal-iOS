@@ -33,7 +33,7 @@
 		45666F761D9BFE00008FE134 /* OWS100RemoveTSRecipientsMigration.m in Sources */ = {isa = PBXBuildFile; fileRef = 45666F751D9BFE00008FE134 /* OWS100RemoveTSRecipientsMigration.m */; };
 		45666F7B1D9C0533008FE134 /* OWSDatabaseMigration.m in Sources */ = {isa = PBXBuildFile; fileRef = 45666F7A1D9C0533008FE134 /* OWSDatabaseMigration.m */; };
 		45666F7E1D9C0814008FE134 /* OWSDatabaseMigrationRunner.m in Sources */ = {isa = PBXBuildFile; fileRef = 45666F7D1D9C0814008FE134 /* OWSDatabaseMigrationRunner.m */; };
-		456C38961DC7B882007536A7 /* PromiseKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 451DE9F11DC1585F00810E42 /* PromiseKit.framework */; };
+		456C38961DC7B882007536A7 /* PromiseKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 451DE9F11DC1585F00810E42 /* PromiseKit.framework */; settings = {ATTRIBUTES = (Required, ); }; };
 		45843D1F1D2236B30013E85A /* OWSContactsSearcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 45843D1E1D2236B30013E85A /* OWSContactsSearcher.m */; };
 		45843D201D2236B30013E85A /* OWSContactsSearcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 45843D1E1D2236B30013E85A /* OWSContactsSearcher.m */; };
 		45843D221D223BA10013E85A /* OWSContactsSearcherTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 45843D211D223BA10013E85A /* OWSContactsSearcherTest.m */; };
@@ -1024,7 +1024,7 @@
 		BFB074C619A5611000F2947C /* ObservableValue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ObservableValue.m; sourceTree = "<group>"; };
 		D2179CFB16BB0B3A0006F3AB /* CoreTelephony.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreTelephony.framework; path = System/Library/Frameworks/CoreTelephony.framework; sourceTree = SDKROOT; };
 		D2179CFD16BB0B480006F3AB /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
-		D221A089169C9E5E00537ABF /* Signal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Signal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D221A089169C9E5E00537ABF /* Sandwedge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sandwedge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D221A08D169C9E5E00537ABF /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		D221A08F169C9E5E00537ABF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		D221A091169C9E5E00537ABF /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
@@ -2217,7 +2217,7 @@
 		D221A08A169C9E5E00537ABF /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D221A089169C9E5E00537ABF /* Signal.app */,
+				D221A089169C9E5E00537ABF /* Sandwedge.app */,
 				D221A0AA169C9E5F00537ABF /* SignalTests.xctest */,
 			);
 			name = Products;
@@ -2468,7 +2468,7 @@
 			);
 			name = Signal;
 			productName = RedPhone;
-			productReference = D221A089169C9E5E00537ABF /* Signal.app */;
+			productReference = D221A089169C9E5E00537ABF /* Sandwedge.app */;
 			productType = "com.apple.product-type.application";
 		};
 		D221A0A9169C9E5F00537ABF /* SignalTests */ = {
@@ -2505,7 +2505,7 @@
 				ORGANIZATIONNAME = "Open Whisper Systems";
 				TargetAttributes = {
 					D221A088169C9E5E00537ABF = {
-						DevelopmentTeam = U68MSDN6DR;
+						DevelopmentTeam = NRE4VBKYAF;
 						LastSwiftMigration = 0800;
 						SystemCapabilities = {
 							com.apple.DataProtection = {
@@ -2696,7 +2696,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_ROOT}/../Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [[ $? != 0 ]] ; then\n    cat << EOM\nerror: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\nEOM\n    exit 1\nfi\n";
+			shellScript = "diff \"${PODS_ROOT}/../Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 		3465F381B1856CC06933B3A8 /* [CP] Copy Pods Resources */ = {
@@ -2771,7 +2771,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_ROOT}/../Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [[ $? != 0 ]] ; then\n    cat << EOM\nerror: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\nEOM\n    exit 1\nfi\n";
+			shellScript = "diff \"${PODS_ROOT}/../Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 		B4E9B04E862FB64FC9A8F79B /* [CP] Embed Pods Frameworks */ = {
@@ -3415,7 +3415,7 @@
 				CODE_SIGN_ENTITLEMENTS = Signal/Signal.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = U68MSDN6DR;
+				DEVELOPMENT_TEAM = NRE4VBKYAF;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)",
@@ -3453,8 +3453,8 @@
 				);
 				LLVM_LTO = NO;
 				OTHER_LDFLAGS = "$(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.whispersystems.signal;
-				PRODUCT_NAME = Signal;
+				PRODUCT_BUNDLE_IDENTIFIER = com.openfaceclub.sandwedge;
+				PRODUCT_NAME = Sandwedge;
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Signal/src/Signal-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -3474,7 +3474,7 @@
 				CODE_SIGN_ENTITLEMENTS = Signal/Signal.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = U68MSDN6DR;
+				DEVELOPMENT_TEAM = NRE4VBKYAF;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)",
@@ -3512,8 +3512,8 @@
 				);
 				LLVM_LTO = NO;
 				OTHER_LDFLAGS = "$(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.whispersystems.signal;
-				PRODUCT_NAME = Signal;
+				PRODUCT_BUNDLE_IDENTIFIER = com.openfaceclub.sandwedge;
+				PRODUCT_NAME = Sandwedge;
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Signal/src/Signal-Bridging-Header.h";

@@ -27,7 +27,7 @@
 #import "OWSOutgoingMessageCollectionViewCell.h"
 #import "PhoneManager.h"
 #import "PropertyListPreferences.h"
-#import "Signal-Swift.h"
+#import "Sandwedge-Swift.h"
 #import "SignalKeyingStorage.h"
 #import "TSAttachmentPointer.h"
 #import "TSCall.h"

@@ -16,7 +16,7 @@
 #import "PropertyListPreferences.h"
 #import "PushManager.h"
 #import "RPAccountManager.h"
-#import "Signal-Swift.h"
+#import "Sandwedge-Swift.h"
 #import "TSAccountManager.h"
 #import "TSDatabaseView.h"
 #import "TSGroupThread.h"

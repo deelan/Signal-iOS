@@ -11,7 +11,7 @@
 #import "PushManager.h"
 #import "RPAccountManager.h"
 #import "Release.h"
-#import "Signal-Swift.h"
+#import "Sandwedge-Swift.h"
 #import "TSMessagesManager.h"
 #import "TSPreKeyManager.h"
 #import "TSSocketManager.h"
