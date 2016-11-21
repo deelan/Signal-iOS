@@ -10,6 +10,7 @@
 
 
 #import "SignalsViewController.h"
+#import "DJWActionSheet+OWS.h"
 
 #import "OWSContactsManager.h"
 #import "Environment.h"
@@ -103,8 +104,56 @@ static NSString *const kUnwindToMessagesViewSegue = @"UnwindToMessagesViewSegue"
 
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    NSIndexPath *relativeIndexPath = [NSIndexPath indexPathForRow:indexPath.row - 1 inSection:indexPath.section];
+    UIView *presenter = [self.navigationController view];
+    
+    [DJWActionSheet showInView:presenter
+                     withTitle:nil
+             cancelButtonTitle:NSLocalizedString(@"TXT_CANCEL_TITLE", @"")
+        destructiveButtonTitle:nil
+             otherButtonTitles:@[
+                                 @"Send Message",
+                                 @"View Contact"
+                                 ] //,@"Record audio"]
+                      tapBlock:^(DJWActionSheet *actionSheet, NSInteger tappedButtonIndex) {
+                          if (tappedButtonIndex == actionSheet.cancelButtonIndex) {
+                              DDLogVerbose(@"User Cancelled");
+                          } else if (tappedButtonIndex == actionSheet.destructiveButtonIndex) {
+                              DDLogVerbose(@"Destructive button tapped");
+                          } else {
+                              switch (tappedButtonIndex) {
+                                  case 0:
+                                      [self sendMessage:indexPath];
+                                      break;
+                                  case 1:
+                                      [self viewContact:indexPath];
+                                      break;
+                                  default:
+                                      break;
+                              }
+                          }
+                      }];
 
+    
+
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+}
+
+- (void)sendMessage:(NSIndexPath *)indexPath {
+    NSIndexPath *relativeIndexPath = [NSIndexPath indexPathForRow:indexPath.row - 1 inSection:indexPath.section];
+    NSString *identifier = [self.groupContacts identifierForIndexPath:relativeIndexPath];
+    [CATransaction begin];
+    [CATransaction setCompletionBlock:^{
+        [Environment messageIdentifier:identifier withCompose:YES];
+    }];
+    
+    [self.navigationController popViewControllerAnimated:YES];
+    
+    [CATransaction commit];
+}
+
+- (void)viewContact:(NSIndexPath *)indexPath {
+    NSIndexPath *relativeIndexPath = [NSIndexPath indexPathForRow:indexPath.row - 1 inSection:indexPath.section];
+    
     if (indexPath.row > 0 && [self.groupContacts isContactAtIndexPath:relativeIndexPath]) {
         ABPersonViewController *view = [[ABPersonViewController alloc] init];
 
@@ -138,8 +187,6 @@ static NSString *const kUnwindToMessagesViewSegue = @"UnwindToMessagesViewSegue"
             [self.navigationController pushViewController:view animated:YES];
         }
     }
-
-    [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
 
 - (Contact *)contactForIndexPath:(NSIndexPath *)indexPath {
