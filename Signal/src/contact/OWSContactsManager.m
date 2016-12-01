@@ -25,11 +25,15 @@ typedef BOOL (^ContactSearchBlock)(id, NSUInteger, BOOL *);
 
 - (id)init {
     self = [super init];
-    if (self) {
-        _life = [TOCCancelTokenSource new];
-        _observableContactsController = [ObservableValueController observableValueControllerWithInitialValue:nil];
-        _latestContactsById = @{};
+    if (!self) {
+        return self;
     }
+
+    _life = [TOCCancelTokenSource new];
+    _observableContactsController = [ObservableValueController observableValueControllerWithInitialValue:nil];
+    _latestContactsById = @{};
+    _avatarCache = [NSCache new];
+
     return self;
 }
 
@@ -67,9 +71,15 @@ void onAddressBookChanged(ABAddressBookRef notifyAddressBook, CFDictionaryRef in
 void onAddressBookChanged(ABAddressBookRef notifyAddressBook, CFDictionaryRef info, void *context) {
     OWSContactsManager *contactsManager = (__bridge OWSContactsManager *)context;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-      [contactsManager pullLatestAddressBook];
-      [contactsManager intersectContacts];
+        [contactsManager handleAddressBookChanged];
     });
+}
+
+- (void)handleAddressBookChanged
+{
+    [self pullLatestAddressBook];
+    [self intersectContacts];
+    [self.avatarCache removeAllObjects];
 }
 
 #pragma mark - Setup
@@ -81,8 +91,7 @@ void onAddressBookChanged(ABAddressBookRef notifyAddressBook, CFDictionaryRef in
         ABAddressBookRef cfAddressBook = (__bridge ABAddressBookRef)addressBook;
         ABAddressBookRegisterExternalChangeCallback(cfAddressBook, onAddressBookChanged, (__bridge void *)self);
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-          [self pullLatestAddressBook];
-          [self intersectContacts];
+            [self handleAddressBookChanged];
         });
       }];
     });
@@ -338,7 +347,7 @@ void onAddressBookChanged(ABAddressBookRef notifyAddressBook, CFDictionaryRef in
     }];
 }
 
-- (NSArray<Contact *> *)allContacts {
+- (NSArray<Contact *> *_Nonnull)allContacts {
     NSMutableArray *allContacts = [NSMutableArray array];
 
     for (NSString *key in self.latestContactsById.allKeys) {
@@ -370,34 +379,20 @@ void onAddressBookChanged(ABAddressBookRef notifyAddressBook, CFDictionaryRef in
 #pragma mark - Whisper User Management
 
 - (NSArray *)getSignalUsersFromContactsArray:(NSArray *)contacts {
-    return [[contacts filter:^int(Contact *contact) {
-      return [contact isSignalContact];
-    }] sortedArrayUsingComparator:[[self class] contactComparator]];
-}
+    NSMutableDictionary *signalContacts = [NSMutableDictionary new];
+    for (Contact *contact in contacts) {
+        if ([contact isSignalContact]) {
+            signalContacts[contact.textSecureIdentifiers.firstObject] = contact;
+        }
+    }
 
-+ (NSComparator)contactComparator {
-    return ^NSComparisonResult(id obj1, id obj2) {
-      Contact *contact1 = (Contact *)obj1;
-      Contact *contact2 = (Contact *)obj2;
-
-      BOOL firstNameOrdering = ABPersonGetSortOrdering() == kABPersonCompositeNameFormatFirstNameFirst ? YES : NO;
-
-      if (firstNameOrdering) {
-          return [contact1.firstName caseInsensitiveCompare:contact2.firstName];
-      } else {
-          return [contact1.lastName caseInsensitiveCompare:contact2.lastName];
-      };
-    };
+    BOOL firstNameOrdering = ABPersonGetSortOrdering() == kABPersonCompositeNameFormatFirstNameFirst ? YES : NO;
+    NSComparator contactsComparator = [Contact comparatorSortingNamesByFirstThenLast:firstNameOrdering];
+    return [signalContacts.allValues sortedArrayUsingComparator:contactsComparator];
 }
 
 - (NSArray<Contact *> *)signalContacts {
     return [self getSignalUsersFromContactsArray:[self allContacts]];
-}
-
-- (NSArray *)textSecureContacts {
-    return [[self.allContacts filter:^int(Contact *contact) {
-      return [contact isSignalContact];
-    }] sortedArrayUsingComparator:[[self class] contactComparator]];
 }
 
 - (NSString *)nameStringForPhoneIdentifier:(NSString *)identifier {

@@ -12,39 +12,81 @@
 
 #import "ContactTableViewCell.h"
 #import "ContactsUpdater.h"
-#import "OWSContactsSearcher.h"
 #import "Environment.h"
+#import "OWSContactsSearcher.h"
+#import "Signal-Swift.h"
 #import "UIColor+OWS.h"
 #import "UIUtil.h"
+
+NS_ASSUME_NONNULL_BEGIN
 
 @interface MessageComposeTableViewController () <UISearchBarDelegate,
                                                  UISearchResultsUpdating,
                                                  MFMessageComposeViewControllerDelegate>
+
+@property (nonatomic, strong) IBOutlet UITableViewCell *inviteCell;
+@property (nonatomic, strong) IBOutlet OWSNoSignalContactsView *noSignalContactsView;
 
 @property (nonatomic) UIButton *sendTextButton;
 @property (nonatomic, strong) UISearchController *searchController;
 @property (nonatomic, strong) UIActivityIndicatorView *activityIndicator;
 @property (nonatomic, strong) UIBarButtonItem *addGroup;
 @property (nonatomic, strong) UIView *loadingBackgroundView;
-@property (nonatomic, strong) UIView *emptyBackgroundView;
+
 @property (nonatomic) NSString *currentSearchTerm;
 @property (copy) NSArray<Contact *> *contacts;
 @property (copy) NSArray<Contact *> *searchResults;
+@property (nonatomic, readonly) OWSContactsManager *contactsManager;
 
 @end
 
+NSInteger const MessageComposeTableViewControllerSectionInvite = 0;
+NSInteger const MessageComposeTableViewControllerSectionContacts = 1;
+
+NSString *const MessageComposeTableViewControllerCellInvite = @"ContactTableInviteCell";
+NSString *const MessageComposeTableViewControllerCellContact = @"ContactTableViewCell";
+
 @implementation MessageComposeTableViewController
+
+- (nullable instancetype)initWithCoder:(NSCoder *)aDecoder
+{
+    self = [super initWithCoder:aDecoder];
+    if (!self) {
+        return self;
+    }
+
+    _contactsManager = [Environment getCurrent].contactsManager;
+
+    return self;
+}
+
+- (instancetype)init
+{
+    self = [super init];
+    if (!self) {
+        return self;
+    }
+
+    _contactsManager = [Environment getCurrent].contactsManager;
+
+    return self;
+}
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     [self.navigationController.navigationBar setTranslucent:NO];
 
-    self.contacts = [[[Environment getCurrent] contactsManager] signalContacts];
+    self.tableView.estimatedRowHeight = (CGFloat)60.0;
+    self.tableView.rowHeight = UITableViewAutomaticDimension;
+
+    self.contacts = self.contactsManager.signalContacts;
     self.searchResults = self.contacts;
     [self initializeSearch];
 
     self.searchController.searchBar.hidden          = NO;
     self.searchController.searchBar.backgroundColor = [UIColor whiteColor];
+    self.inviteCell.textLabel.text = NSLocalizedString(
+        @"INVITE_FRIENDS_CONTACT_TABLE_BUTTON", @"Text for button at the top of the contact picker");
 
     self.tableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
     [self createLoadingAndBackgroundViews];
@@ -87,19 +129,6 @@
     return label;
 }
 
-- (UIButton *)createButtonWithTitle:(NSString *)title {
-    NSDictionary *buttonTextAttributes = @{
-        NSFontAttributeName : [UIFont ows_regularFontWithSize:15.0f],
-        NSForegroundColorAttributeName : [UIColor ows_materialBlueColor]
-    };
-    UIButton *button                           = [[UIButton alloc] initWithFrame:CGRectMake(0, 0, 65, 24)];
-    NSMutableAttributedString *attributedTitle = [[NSMutableAttributedString alloc] initWithString:title];
-    [attributedTitle setAttributes:buttonTextAttributes range:NSMakeRange(0, [attributedTitle length])];
-    [button setAttributedTitle:attributedTitle forState:UIControlStateNormal];
-    [button.titleLabel setTextAlignment:NSTextAlignmentCenter];
-    return button;
-}
-
 - (void)createLoadingAndBackgroundViews {
     // This will be further tweaked per design recs. It must currently be hardcoded (or we can place in separate .xib I
     // suppose) as the controller must be a TableViewController to have access to the native pull to refresh
@@ -127,27 +156,16 @@
     [_loadingBackgroundView addSubview:loadingProgressView];
     [_loadingBackgroundView addSubview:loadingLabel];
 
-    _emptyBackgroundView        = [[UIView alloc] initWithFrame:self.tableView.frame];
-    UIImageView *emptyImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"uiEmptyContact"]];
-    [emptyImageView setBackgroundColor:[UIColor whiteColor]];
-    [emptyImageView setContentMode:UIViewContentModeCenter];
-    [emptyImageView setFrame:CGRectMake(self.tableView.frame.size.width / 2.0f - 115.0f / 2.0f, 100, 115, 110)];
-    emptyImageView.contentMode = UIViewContentModeCenter;
-    emptyImageView.contentMode = UIViewContentModeScaleAspectFit;
-    UILabel *emptyLabel        = [self createLabelWithFirstLine:NSLocalizedString(@"EMPTY_CONTACTS_LABEL_LINE1", @"")
-                                           andSecondLine:NSLocalizedString(@"EMPTY_CONTACTS_LABEL_LINE2", @"")];
+    [self.noSignalContactsView.inviteButton addTarget:self
+                                               action:@selector(presentInviteFlow)
+                                     forControlEvents:UIControlEventTouchUpInside];
+}
 
-    UIButton *inviteContactButton =
-        [self createButtonWithTitle:NSLocalizedString(@"EMPTY_CONTACTS_INVITE_BUTTON", @"")];
-
-    [inviteContactButton addTarget:self action:@selector(sendText) forControlEvents:UIControlEventTouchUpInside];
-    [inviteContactButton
-        setFrame:CGRectMake([self marginSize], self.tableView.frame.size.height - 200, [self contentWidth], 60)];
-    [inviteContactButton.titleLabel setTextAlignment:NSTextAlignmentCenter];
-
-    [_emptyBackgroundView addSubview:emptyImageView];
-    [_emptyBackgroundView addSubview:emptyLabel];
-    [_emptyBackgroundView addSubview:inviteContactButton];
+- (void)presentInviteFlow
+{
+    OWSInviteFlow *inviteFlow =
+        [[OWSInviteFlow alloc] initWithPresentingViewController:self contactsManager:self.contactsManager];
+    [self presentViewController:inviteFlow.actionSheetController animated:YES completion:nil];
 }
 
 
@@ -182,8 +200,9 @@
         self.navigationItem.rightBarButtonItem.imageInsets = UIEdgeInsetsMake(8, 8, 8, 8);
 
 
+        self.inviteCell.hidden = YES;
         self.searchController.searchBar.hidden = YES;
-        self.tableView.backgroundView          = _emptyBackgroundView;
+        self.tableView.backgroundView = self.noSignalContactsView;
         self.tableView.backgroundView.opaque   = YES;
     } else {
         [self initializeRefreshControl];
@@ -192,6 +211,7 @@
             self.navigationItem.rightBarButtonItem != nil ? self.navigationItem.rightBarButtonItem : _addGroup;
         self.searchController.searchBar.hidden = NO;
         self.tableView.backgroundView          = nil;
+        self.inviteCell.hidden = NO;
     }
 }
 
@@ -244,7 +264,7 @@
 - (void)updateSearchResultsForSearchController:(UISearchController *)searchController {
     NSString *searchString = [self.searchController.searchBar text];
 
-    [self filterContentForSearchText:searchString scope:nil];
+    [self filterContentForSearchText:searchString];
 
     [self.tableView reloadData];
 }
@@ -263,7 +283,8 @@
 
 #pragma mark - Filter
 
-- (void)filterContentForSearchText:(NSString *)searchText scope:(NSString *)scope {
+- (void)filterContentForSearchText:(NSString *)searchText
+{
     OWSContactsSearcher *contactsSearcher = [[OWSContactsSearcher alloc] initWithContacts: self.contacts];
     self.searchResults = [contactsSearcher filterWithString:searchText];
 
@@ -355,7 +376,7 @@
         case MessageComposeResultFailed: {
             UIAlertView *warningAlert =
                 [[UIAlertView alloc] initWithTitle:@""
-                                           message:NSLocalizedString(@"SEND_SMS_INVITE_FAILURE", @"")
+                                           message:NSLocalizedString(@"SEND_INVITE_FAILURE", @"")
                                           delegate:nil
                                  cancelButtonTitle:NSLocalizedString(@"OK", @"")
                                  otherButtonTitles:nil];
@@ -369,7 +390,7 @@
                                      }];
             UIAlertView *successAlert =
                 [[UIAlertView alloc] initWithTitle:@""
-                                           message:NSLocalizedString(@"SEND_SMS_INVITE_SUCCESS", @"")
+                                           message:NSLocalizedString(@"SEND_INVITE_SUCCESS", @"Alert body after invite succeeded")
                                           delegate:nil
                                  cancelButtonTitle:NSLocalizedString(@"OK", @"")
                                  otherButtonTitles:nil];
@@ -386,54 +407,68 @@
 #pragma mark - Table View Data Source
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-    return 1;
+    return 2;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    if (self.searchController.active) {
-        return (NSInteger)[self.searchResults count];
+    if (section == MessageComposeTableViewControllerSectionInvite) {
+        if (floor(NSFoundationVersionNumber) < NSFoundationVersionNumber_iOS_9_0) {
+            // Invite flow not supported on iOS8
+            return 0;
+        }
+        return 1;
     } else {
-        return (NSInteger)[self.contacts count];
+        if (self.searchController.active) {
+            return (NSInteger)[self.searchResults count];
+        } else {
+            return (NSInteger)[self.contacts count];
+        }
     }
 }
 
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    if (indexPath.section == MessageComposeTableViewControllerSectionInvite) {
+        return self.inviteCell;
+    } else {
+        ContactTableViewCell *cell = (ContactTableViewCell *)[tableView
+            dequeueReusableCellWithIdentifier:MessageComposeTableViewControllerCellContact];
 
-- (ContactTableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    ContactTableViewCell *cell =
-        (ContactTableViewCell *)[tableView dequeueReusableCellWithIdentifier:@"ContactTableViewCell"];
+        [cell configureWithContact:[self contactForIndexPath:indexPath] contactsManager:self.contactsManager];
 
-    if (cell == nil) {
-        cell = [[ContactTableViewCell alloc] initWithStyle:UITableViewCellStyleDefault
-                                           reuseIdentifier:@"ContactTableViewCell"];
+        return cell;
     }
-
-    cell.shouldShowContactButtons = NO;
-
-    [cell configureWithContact:[self contactForIndexPath:indexPath]];
-
-    tableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
-
-    return cell;
-}
-
-- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
-    return 52.0f;
 }
 
 #pragma mark - Table View delegate
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    NSString *identifier = [[[self contactForIndexPath:indexPath] textSecureIdentifiers] firstObject];
 
-    [self dismissViewControllerAnimated:YES
-                             completion:^() {
-                               [Environment messageIdentifier:identifier withCompose:YES];
+    if (indexPath.section == MessageComposeTableViewControllerSectionInvite) {
+        void (^showInvite)() = ^{
+            OWSInviteFlow *inviteFlow =
+                [[OWSInviteFlow alloc] initWithPresentingViewController:self contactsManager:self.contactsManager];
+            [self presentViewController:inviteFlow.actionSheetController
+                               animated:YES
+                             completion:^{
+                                 [self.tableView deselectRowAtIndexPath:indexPath animated:YES];
                              }];
-}
+        };
 
-- (void)tableView:(UITableView *)tableView didDeselectRowAtIndexPath:(NSIndexPath *)indexPath {
-    ContactTableViewCell *cell = (ContactTableViewCell *)[tableView cellForRowAtIndexPath:indexPath];
-    cell.accessoryType         = UITableViewCellAccessoryNone;
+        if (self.presentedViewController) {
+            // If search controller is active, dismiss it first.
+            [self dismissViewControllerAnimated:YES completion:showInvite];
+        } else {
+            showInvite();
+        }
+    } else {
+        NSString *identifier = [[[self contactForIndexPath:indexPath] textSecureIdentifiers] firstObject];
+
+        [self dismissViewControllerAnimated:YES
+                                 completion:^() {
+                                     [Environment messageIdentifier:identifier withCompose:YES];
+                                 }];
+    }
 }
 
 - (Contact *)contactForIndexPath:(NSIndexPath *)indexPath {
@@ -462,15 +497,14 @@
 }
 
 - (void)refreshContacts {
-    [[ContactsUpdater sharedUpdater]
-        updateSignalContactIntersectionWithABContacts:[Environment getCurrent].contactsManager.allContacts
+    [[ContactsUpdater sharedUpdater] updateSignalContactIntersectionWithABContacts:self.contactsManager.allContacts
         success:^{
-          self.contacts = [[[Environment getCurrent] contactsManager] signalContacts];
-          dispatch_async(dispatch_get_main_queue(), ^{
-            [self updateSearchResultsForSearchController:self.searchController];
-            [self.tableView reloadData];
-            [self updateAfterRefreshTry];
-          });
+            self.contacts = self.contactsManager.signalContacts;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self updateSearchResultsForSearchController:self.searchController];
+                [self.tableView reloadData];
+                [self updateAfterRefreshTry];
+            });
         }
         failure:^(NSError *error) {
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -492,8 +526,8 @@
 
 #pragma mark - Navigation
 
-// In a storyboard-based application, you will often want to do a little preparation before navigation
-- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(nullable id)sender
+{
     self.searchController.active = NO;
 }
 
@@ -510,3 +544,5 @@
 }
 
 @end
+
+NS_ASSUME_NONNULL_END

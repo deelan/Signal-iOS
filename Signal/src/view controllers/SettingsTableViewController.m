@@ -17,13 +17,13 @@
 
 #import "TSSocketManager.h"
 
-#import "OWSContactsManager.h"
-
 #import "AboutTableViewController.h"
 #import "AdvancedSettingsTableViewController.h"
 #import "NotificationSettingsViewController.h"
+#import "OWSContactsManager.h"
 #import "PrivacySettingsTableViewController.h"
 #import "PushManager.h"
+#import "Signal-Swift.h"
 
 #define kProfileCellHeight 87.0f
 #define kStandardCellHeight 44.0f
@@ -31,16 +31,19 @@
 #define kNumberOfSections 4
 
 #define kRegisteredNumberRow 0
-#define kPrivacyRow 0
-#define kNotificationRow 1
-#define kAdvancedRow 3
-#define kAboutRow 4
+#define kInviteRow 0
+#define kPrivacyRow 1
+#define kNotificationRow 2
+#define kLinkedDevices 3 // we don't actually use this, instead we segue via Interface Builder
+#define kAdvancedRow 4
+#define kAboutRow 5
+
 #define kNetworkRow 0
 #define kUnregisterRow 0
 
 typedef enum {
     kRegisteredRows = 1,
-    kGeneralRows = 5,
+    kGeneralRows = 6,
     kNetworkStatusRows = 1,
     kUnregisterRows = 1,
 } kRowsForSection;
@@ -54,9 +57,35 @@ typedef enum {
 
 @interface SettingsTableViewController () <UIAlertViewDelegate>
 
+@property (nonatomic, readonly) OWSContactsManager *contactsManager;
+
 @end
 
 @implementation SettingsTableViewController
+
+- (instancetype)init
+{
+    self = [super init];
+    if (!self) {
+        return self;
+    }
+
+    _contactsManager = [Environment getCurrent].contactsManager;
+
+    return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)aDecoder
+{
+    self = [super initWithCoder:aDecoder];
+    if (!self) {
+        return self;
+    }
+
+    _contactsManager = [Environment getCurrent].contactsManager;
+
+    return self;
+}
 
 - (void)viewDidLoad
 {
@@ -81,6 +110,8 @@ typedef enum {
     self.notificationsLabel.text = NSLocalizedString(@"SETTINGS_NOTIFICATIONS", nil);
     self.linkedDevicesLabel.text
         = NSLocalizedString(@"LINKED_DEVICES_TITLE", @"Menu item and navbar title for the device manager");
+    self.inviteLabel.text = NSLocalizedString(@"SETTINGS_INVITE_TITLE", @"Settings table view cell label");
+
     [self.destroyAccountButton setTitle:NSLocalizedString(@"SETTINGS_DELETE_ACCOUNT_BUTTON", @"")
                                forState:UIControlStateNormal];
 }
@@ -127,6 +158,17 @@ typedef enum {
     switch (indexPath.section) {
         case kGeneralSection: {
             switch (indexPath.row) {
+                case kInviteRow: {
+                    OWSInviteFlow *inviteFlow =
+                        [[OWSInviteFlow alloc] initWithPresentingViewController:self
+                                                                contactsManager:self.contactsManager];
+                    [self presentViewController:inviteFlow.actionSheetController
+                                       animated:YES
+                                     completion:^{
+                                         [self.tableView deselectRowAtIndexPath:indexPath animated:YES];
+                                     }];
+                    break;
+                }
                 case kPrivacyRow: {
                     PrivacySettingsTableViewController *vc = [[PrivacySettingsTableViewController alloc] init];
                     NSAssert(self.navigationController != nil, @"Navigation controller must not be nil");
@@ -154,6 +196,7 @@ typedef enum {
                     break;
                 }
                 default:
+                    DDLogError(@"%@ Unhandled row selected at index path: %@", self.tag, indexPath);
                     break;
             }
 
@@ -258,6 +301,18 @@ typedef enum {
 - (void)socketIsConnecting {
     self.networkStatusLabel.text      = NSLocalizedString(@"NETWORK_STATUS_CONNECTING", @"");
     self.networkStatusLabel.textColor = [UIColor ows_yellowColor];
+}
+
+#pragma mark - Logging
+
++ (NSString *)tag
+{
+    return [NSString stringWithFormat:@"[%@]", self.class];
+}
+
+- (NSString *)tag
+{
+    return self.class.tag;
 }
 
 @end

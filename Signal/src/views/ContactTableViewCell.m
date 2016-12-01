@@ -1,29 +1,42 @@
 #import "ContactTableViewCell.h"
+#import "Environment.h"
+#import "OWSContactAvatarBuilder.h"
+#import "OWSContactsManager.h"
+#import "PhoneManager.h"
 #import "UIUtil.h"
 
-#import "Environment.h"
-#import "PhoneManager.h"
+NS_ASSUME_NONNULL_BEGIN
 
 @interface ContactTableViewCell ()
 
-@property (strong, nonatomic) Contact *associatedContact;
+@property (nonatomic) IBOutlet UILabel *nameLabel;
+@property (nonatomic) IBOutlet UIImageView *avatarView;
 
 @end
 
 @implementation ContactTableViewCell
 
-- (id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
-    self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
-    return self;
-}
-
-- (NSString *)reuseIdentifier {
+- (nullable NSString *)reuseIdentifier
+{
     return NSStringFromClass(self.class);
 }
 
-- (void)configureWithContact:(Contact *)contact {
-    self.associatedContact = contact;
+- (void)configureWithContact:(Contact *)contact contactsManager:(OWSContactsManager *)contactsManager
+{
     self.nameLabel.attributedText = [self attributedStringForContact:contact];
+    self.avatarView.image =
+        [[[OWSContactAvatarBuilder alloc] initWithContactId:contact.textSecureIdentifiers.firstObject
+                                                       name:contact.fullName
+                                            contactsManager:contactsManager] build];
+
+    // Force layout, since imageView isn't being initally rendered on App Store optimized build.
+    [self layoutSubviews];
+}
+
+- (void)layoutSubviews
+{
+    [super layoutSubviews];
+    [UIUtil applyRoundedBorderToImageView:self.avatarView];
 }
 
 - (NSAttributedString *)attributedStringForContact:(Contact *)contact {
@@ -34,11 +47,11 @@
     UIFont *lastNameFont;
 
     if (ABPersonGetSortOrdering() == kABPersonCompositeNameFormatFirstNameFirst) {
-        firstNameFont = [UIFont ows_mediumFontWithSize:_nameLabel.font.pointSize];
-        lastNameFont  = [UIFont ows_regularFontWithSize:_nameLabel.font.pointSize];
+        firstNameFont = [UIFont ows_mediumFontWithSize:self.nameLabel.font.pointSize];
+        lastNameFont = [UIFont ows_regularFontWithSize:self.nameLabel.font.pointSize];
     } else {
-        firstNameFont = [UIFont ows_regularFontWithSize:_nameLabel.font.pointSize];
-        lastNameFont  = [UIFont ows_mediumFontWithSize:_nameLabel.font.pointSize];
+        firstNameFont = [UIFont ows_regularFontWithSize:self.nameLabel.font.pointSize];
+        lastNameFont = [UIFont ows_mediumFontWithSize:self.nameLabel.font.pointSize];
     }
     [fullNameAttributedString addAttribute:NSFontAttributeName
                                      value:firstNameFont
@@ -63,3 +76,5 @@
 }
 
 @end
+
+NS_ASSUME_NONNULL_END
